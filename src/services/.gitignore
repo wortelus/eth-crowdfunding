@@ -1,0 +1,7 @@
+# ignore const.js because of sensitive data
+
+# const alchemyApiKey = "v2/ABC";
+# export const contractAddress = '0xABC';
+# export const contractABI = [ ABC ];
+
+const.js
