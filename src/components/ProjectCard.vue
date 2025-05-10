@@ -1,48 +1,50 @@
 <template>
   <div class="project-card">
     <h4>{{ projectData.name }} (ID: {{ projectData.id }})</h4>
-    <p><strong>Creator:</strong> {{ projectData.creator }}</p>
-    <p><strong>Description:</strong> {{ projectData.description }}</p>
+    <p><strong>Tvůrce projektu:</strong> {{ projectData.creator }}</p>
+    <p><strong>Popis:</strong> {{ projectData.description }}</p>
     <p>
-      <strong>Goal:</strong> {{ formatEth(projectData.goalAmount) }} ETH
+      <strong>Cíl:</strong> {{ formatEth(projectData.goalAmount) }} ETH
     </p>
     <p>
-      <strong>Funded:</strong> {{ formatEth(projectData.currentAmount) }} ETH
+      <strong>Dosud vybráno:</strong> {{ formatEth(projectData.currentAmount) }} ETH
       ({{ fundingPercentage.toFixed(2) }}%)
     </p>
     <p><strong>Deadline:</strong> {{ new Date(projectData.deadline * 1000).toLocaleString() }}</p>
     <p v-if="projectData.myContribution && formatEth(projectData.myContribution) > 0">
-      <strong>Your Contribution:</strong> {{ formatEth(projectData.myContribution) }} ETH
+      <strong>Můj příspěvek:</strong> {{ formatEth(projectData.myContribution) }} ETH
     </p>
     <p><strong>Status:</strong> {{ projectStatus }}</p>
 
     <div v-if="!projectData.closed && projectData.deadline * 1000 > Date.now()">
       <input type="number" v-model.number="investAmount" placeholder="ETH to invest" step="0.01" min="0.001"/>
-      <button @click="invest" :disabled="isProcessing">Invest</button>
+      <button @click="invest" :disabled="isProcessing">Investovat</button>
     </div>
 
+    <!-- * 1000 -->
+    <!-- převod sekund na milisekundy pro porovnání s Date.now() -->
     <div
         v-if="isCreator && !projectData.closed && projectData.deadline * 1000 < Date.now() && projectData.fundingGoalReached">
-      <button @click="claim" :disabled="isProcessing">Claim Funds</button>
+      <button @click="claim" :disabled="isProcessing">Vybrat zůstatek z kontraktu</button>
     </div>
 
     <div v-if="!projectData.closed && projectData.deadline * 1000 < Date.now() && !projectData.fundingGoalReached">
-      <button @click="triggerFail" :disabled="isProcessing">Mark as Failed (Enable Refunds)</button>
+      <button @click="triggerFail" :disabled="isProcessing">Označit jako selhaný projekt</button>
     </div>
 
     <div
         v-if="(projectData.closed && !projectData.fundingGoalReached) || (!projectData.closed && projectData.deadline * 1000 < Date.now() && !projectData.fundingGoalReached)">
-      <button v-if="canClaimRefund" @click="claimRefund" :disabled="isProcessing">Claim Refund</button>
+      <button v-if="canClaimRefund" @click="claimRefund" :disabled="isProcessing">Vybrat refund</button>
     </div>
 
-    <p v-if="isProcessing" class="processing-message">Processing transaction...</p>
+    <p v-if="isProcessing" class="processing-message">zpracovávání transakcí...</p>
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
   </div>
 </template>
 
 <script setup>
 import {ref, computed, defineProps, defineEmits, onMounted} from 'vue';
-import ethService from '../services/ethereumService.js'; // Upravte cestu
+import ethService from '../services/ethereumService.js';
 
 const props = defineProps({
   projectData: {
@@ -51,8 +53,10 @@ const props = defineProps({
   }
 });
 
+// typy emit událostí
 const emit = defineEmits(['invest', 'claim', 'trigger-fail', 'claim-refund']);
 
+// proměnné pro investici daného projektu
 const investAmount = ref(0.01);
 const isProcessing = ref(false);
 const errorMessage = ref('');
@@ -68,18 +72,19 @@ const isCreator = computed(() => {
 });
 
 const canClaimRefund = computed(() => {
-  // Uživatel může nárokovat refundaci, pokud projekt selhal a on přispěl
+  // uživatel může nárokovat refundaci, pokud projekt selhal a on přispěl
   return props.projectData.myContribution && ethService.formatEther(props.projectData.myContribution) > 0;
 });
 
 
 const fundingPercentage = computed(() => {
   if (!props.projectData.goalAmount || props.projectData.goalAmount === 0n) return 0;
-  // Používáme dělení s BigInt a pak konverzi na Number pro procenta
+  // tady použijeme dělení s BigInt a pak konverzi na Number pro procenta
   const goal = BigInt(props.projectData.goalAmount);
   const current = BigInt(props.projectData.currentAmount);
   if (goal === 0n) return 0;
-  return Number((current * 10000n / goal)) / 100; // Násobíme 10000 pro 2 desetinná místa
+  // Násobíme 10000 pro 2 desetinná místa
+  return Number((current * 10000n / goal)) / 100;
 });
 
 const projectStatus = computed(() => {

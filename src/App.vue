@@ -4,11 +4,16 @@ import MainComponent from "@/components/MainComponent.vue";
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+      <h1>Wortelus ETH Crowdfunding</h1>
+      <p>Máte zajímavý projekt nebo přání které si chcete splnit ? :)</p>
+      <p>Nemáte rádi banky a daně ?</p>
+      <p>Chcete být cypherpunk a s prachama zmizet na Bahamské ostrovy ?</p>
+      <p>Pak jste na správném místě!</p>
+      <img alt="Ethereum logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
   </header>
 
   <main>
-    <MainComponent/>
+    <MainComponent style="margin-top: 64px;"/>
   </main>
 </template>
 
@@ -19,18 +24,17 @@ header {
 
 .logo {
   display: block;
-  margin: 0 auto 2rem;
+  margin: 64px 0 auto 0;
 }
 
 @media (min-width: 1024px) {
   header {
-    display: flex;
     place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+    padding: 32px calc(var(--section-gap) / 2) 0 0;
   }
 
   .logo {
-    margin: 0 2rem 0 0;
+    margin: 64px 0 auto 0;
   }
 }
 </style>

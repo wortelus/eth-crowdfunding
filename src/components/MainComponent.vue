@@ -1,8 +1,7 @@
 <template>
   <div>
-    <h1>Crowdfunding Platform</h1>
     <div v-if="!walletAddress">
-      <button @click="connectWallet">Connect Wallet</button>
+      <button @click="connectWallet">Připojit peněženku</button>
     </div>
     <div v-else>
       <p>Connected: {{ walletAddress }}</p>
@@ -10,8 +9,8 @@
       <CreateProjectForm @projectCreated="fetchProjects"/>
       <hr/>
       <h2>All Projects</h2>
-      <button @click="sortProjectsByAge">{{ sortAscending ? 'Sort Newest First' : 'Sort Oldest First' }}</button>
-      <div v-if="loadingProjects">Loading projects...</div>
+      <button @click="sortProjectsByAge">{{ sortAscending ? 'Od nejnovějšího' : 'Od nejstaršího' }}</button>
+      <div v-if="loadingProjects">načítání projektů...</div>
       <div v-else>
         <ProjectCard
             v-for="project in sortedProjects"
@@ -24,8 +23,8 @@
         />
       </div>
       <hr/>
-      <h2>My Investments</h2>
-      <div v-if="loadingMyInvestments">Loading my investments...</div>
+      <h2>Moje investice do projektů</h2>
+      <div v-if="loadingMyInvestments">načítání investic...</div>
       <div v-else-if="myInvestedProjects.length === 0 && walletAddress">No investments found.</div>
       <div v-else>
         <ProjectCard
@@ -39,9 +38,9 @@
         />
       </div>
       <hr/>
-      <h2>Unsuccessful Completed Projects</h2>
-      <div v-if="loadingUnsuccessful">Loading unsuccessful projects...</div>
-      <div v-else-if="unsuccessfulProjects.length === 0">No unsuccessful projects found.</div>
+      <h2>Neúspěšné dokončené projekty</h2>
+      <div v-if="loadingUnsuccessful">načítání neuspěšných projektů...</div>
+      <div v-else-if="unsuccessfulProjects.length === 0">Nic neuspěšného nebylo zatím nalezeno :)</div>
       <div v-else>
         <ProjectCard
             v-for="project in unsuccessfulProjects"
@@ -65,27 +64,31 @@ const allProjects = ref([]);
 const loadingProjects = ref(false);
 const loadingMyInvestments = ref(false);
 const loadingUnsuccessful = ref(false);
-const sortAscending = ref(true); // true = oldest first
+const sortAscending = ref(true); // true = nejstarší nahoře
 
+// Připojení peněženky
 const connectWallet = async () => {
   try {
-    await ethService.initProvider(); // Toto by mělo požádat o připojení, pokud je třeba
+    // hlavní inicializační funkce
+    // pokud je třeba, připojí se
+    await ethService.initProvider();
     walletAddress.value = await ethService.getCurrentWalletAddress();
+
     if (walletAddress.value) {
       fetchProjects();
       fetchMyInvestments();
     }
+
   } catch (error) {
-    console.error("Failed to connect wallet:", error);
-    alert("Failed to connect wallet. Make sure MetaMask is installed and unlocked.");
+    console.error("Selhání při připojování peněženky:", error);
+    alert("Selhání při připojování peněženky. Zkontrolujte konzoli pro více informací.");
   }
 };
 
 const fetchProjects = async () => {
-  if (!walletAddress.value && !ethService.hasReadOnlyProvider()) { // Přidejte si metodu hasReadOnlyProvider do ethService
-    console.log("Cannot fetch projects, no provider.");
-    // Můžete se pokusit inicializovat read-only provider zde, pokud je to žádoucí
-    // await ethService.initProvider(); // pokud initProvider umí fallback na Alchemy
+  if (!walletAddress.value && !ethService.hasReadOnlyProvider()) {
+    console.log("Nemohu fetchnout projekty, protože nemám peněženku a ani read-only providera.");
+    // await ethService.initProvider();
   }
   loadingProjects.value = true;
   try {
@@ -108,8 +111,8 @@ const fetchProjects = async () => {
     });
     allProjects.value = await Promise.all(projectPromises);
   } catch (error) {
-    console.error('Failed to fetch projects:', error);
-    alert('Failed to fetch projects. See console for details.');
+    console.error('chyba při načítání projektů:', error);
+    alert('Selhalo načítání projektů: ' + (error.message || error?.data?.message || error));
   } finally {
     loadingProjects.value = false;
   }
@@ -131,12 +134,10 @@ const fetchMyInvestments = async () => {
 
 
 const sortedProjects = computed(() => {
-  // Filtrujeme pouze nedokončené projekty
+  // pouze nedokončené projekty
   const unfinished = allProjects.value.filter(p => !p.closed && p.deadline * 1000 > Date.now());
   return [...unfinished].sort((a, b) => {
-    // Předpokládáme, že ID projektu roste s časem (novější projekty mají vyšší ID)
-    // Nebo pokud máte creationTimestamp, použijte ten. Náš kontrakt nemá explicitní creationTimestamp,
-    // ale ID implicitně slouží tomuto účelu.
+    // předpokládáme, že id reprezentuje posloupnost vytvoření projektů
     return sortAscending.value ? a.id - b.id : b.id - a.id;
   });
 });
@@ -159,57 +160,62 @@ const sortProjectsByAge = () => {
 const handleInvest = async ({projectId, amount}) => {
   try {
     await ethService.contributeToProject(projectId, amount);
-    alert('Investment successful!');
-    fetchProjects(); // Refresh project list
+    alert('Investice do projektu proběhla úspěšně!');
+    // refresh seznam projektů a investic
+    fetchProjects();
     fetchMyInvestments();
   } catch (error) {
-    console.error('Investment failed:', error);
-    alert(`Investment failed: ${error.message || error?.data?.message || error}`);
+    console.error('chyba při investici:', error);
+    alert(`Investice do projektu selhala: ${error.message || error?.data?.message || error}`);
   }
 };
 
 const handleClaim = async (projectId) => {
   try {
     await ethService.claimProjectFunds(projectId);
-    alert('Funds claimed successfully!');
+    alert('Úspěšně jste získali prostředky projektu! Gratuluji!');
+    // refresh seznam projektů
     fetchProjects();
   } catch (error) {
-    console.error('Claiming funds failed:', error);
-    alert(`Claiming funds failed: ${error.message || error?.data?.message || error}`);
+    console.error('chyba při získávání prostředků:', error);
+    alert(`Získávání prostředků projektu selhalo: ${error.message || error?.data?.message || error}`);
   }
 };
 
 const handleTriggerFail = async (projectId) => {
   try {
     await ethService.triggerFailProject(projectId);
-    alert('Project marked as failed, refunds can be claimed.');
+    alert('Projekt byl úspěšně označen jako neúspěšný. Všichni investoři mohou nyní požádat o refundaci.');
+    // refresh seznam projektů
     fetchProjects();
   } catch (error) {
-    console.error('Triggering project fail failed:', error);
-    alert(`Triggering project fail failed: ${error.message || error?.data?.message || error}`);
+    console.error('chyba při označování projektu jako neúspěšného:', error);
+    alert(`Označování projektu jako neúspěšného selhalo: ${error.message || error?.data?.message || error}`);
   }
 };
 
 const handleClaimRefund = async (projectId) => {
   try {
     await ethService.claimRefundForProject(projectId);
-    alert('Refund claimed successfully!');
+    alert('Úspěšně jste získali refundaci za projekt!');
+    // refresh seznam projektů a investic
     fetchProjects();
-    fetchMyInvestments(); // Aktualizovat i moje investice (částka by měla být 0)
+    fetchMyInvestments();
   } catch (error) {
-    console.error('Claiming refund failed:', error);
-    alert(`Claiming refund failed: ${error.message || error?.data?.message || error}`);
+    console.error('chyba při získávání refundace:', error);
+    alert(`Získávání refundace projektu selhalo: ${error.message || error?.data?.message || error}`);
   }
 };
 
 onMounted(async () => {
-  // Zkusit se připojit automaticky, pokud už byla peněženka dříve povolena
+  // nejdříve se pokusíme připojit k peněžence, pokud je dostupná
   if (window.ethereum && window.ethereum.selectedAddress) {
     await connectWallet();
   } else {
     // Pokud není peněženka připojena, můžeme stále načíst projekty přes Alchemy (read-only)
     // To vyžaduje, aby initProvider() v ethService.js uměl nastavit read-only providera,
     // pokud MetaMask není dostupný nebo povolen.
+    console.log('MetaMask není připojen, pokusím se inicializovat read-only provider.');
     try {
       await ethService.initProvider(); // Inicializuje Alchemy providera, pokud není MetaMask
       fetchProjects(); // Načte projekty pomocí Alchemy
@@ -217,6 +223,7 @@ onMounted(async () => {
       console.warn("Could not initialize read-only provider automatically.", e)
     }
   }
+
   // Poslouchání změn účtu v MetaMask
   if (window.ethereum) {
     window.ethereum.on('accountsChanged', async (accounts) => {
@@ -246,7 +253,6 @@ const formatEth = (weiValue) => {
 </script>
 
 <style>
-/* Přidejte si nějaké základní styly */
 hr {
   margin: 20px 0;
 }

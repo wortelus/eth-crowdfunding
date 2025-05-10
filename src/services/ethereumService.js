@@ -1,14 +1,16 @@
 import {ethers} from 'ethers';
-import {contractABI, contractAddress} from './const';
+import {contractABI, contractAddress, alchemyApiKey} from './const';
 
 let provider;
 let signer;
 let crowdFundContract;
 
-// Inicializace providera - buď přes Alchemy (read-only) nebo MetaMask (read-write)
+// 1/2 z hlavních funkcí
+// inicializace providera - MetaMask (read-write) s fallbackem na Alchemy (read-only)
 const initProvider = async () => {
+    // window.ethereum je injected do browseru, zda je metamask dostupný
     if (window.ethereum) {
-        // Použijeme providera z MetaMask, pokud je dostupný
+        // První pokus -> MetaMask, pokud je dostupný
         provider = new ethers.BrowserProvider(window.ethereum);
         try {
             // Požádáme o přístup k účtu, pokud ještě nebyl udělen
@@ -16,24 +18,28 @@ const initProvider = async () => {
             await provider.send("eth_requestAccounts", []);
             signer = await provider.getSigner();
             crowdFundContract = new ethers.Contract(contractAddress, contractABI, signer);
-            console.log("MetaMask provider initialized.");
+            console.log("MetaMask initProvider dokončen úspěšně a kontrakt nastaven.");
         } catch (error) {
-            console.error("User denied account access or MetaMask not found. Falling back to Alchemy provider (read-only).", error);
-            // Fallback na Alchemy providera (read-only, pokud uživatel nepovolí MetaMask)
-            provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`);
+            console.error("Došlo k chybě během komunikace s MM providerem. " +
+                "Uživatel odmítl přístup k účtu MetaMask nebo není dostupný, " +
+                "zkoušíme Alchemy provider.");
+
+            // fallback na Alchemy providera (read-only, pokud uživatel nepovolí MetaMask)
+            provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/${alchemyApiKey}`);
             crowdFundContract = new ethers.Contract(contractAddress, contractABI, provider);
-            console.log("Alchemy provider initialized (read-only).");
+
+            console.log("Alchemy provider nastaven úspěšně (read-only).");
         }
     } else {
         // Pokud MetaMask není k dispozici, použijeme Alchemy jako výchozí (read-only)
         console.log('MetaMask not detected. Using Alchemy provider (read-only).');
-        provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`);
+        provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/${alchemyApiKey}`);
         crowdFundContract = new ethers.Contract(contractAddress, contractABI, provider);
     }
     return {provider, signer, crowdFundContract};
 };
 
-
+// 2/2 z hlavních funkcí
 const getSignerAndContract = async () => {
     if (!signer || !crowdFundContract || !crowdFundContract.runner || crowdFundContract.runner.constructor.name !== 'Signer') {
         // Pokud signer není nastaven nebo kontrakt není připojen k signeru, pokusíme se znovu inicializovat s MetaMaskem
@@ -63,7 +69,7 @@ async function createProject(name, description, goalAmountInEth, durationInSecon
     const {crowdFundContractWithSigner} = await getSignerAndContract();
 
     const goalAmountWei = ethers.parseEther(goalAmountInEth.toString());
-    console.log("Creating project with:", name, description, goalAmountWei, BigInt(durationInSeconds));
+    console.log("tvorba následujícího projektu:", name, description, goalAmountWei, BigInt(durationInSeconds));
 
     try {
         const tx = await crowdFundContractWithSigner.createProject(
@@ -73,10 +79,10 @@ async function createProject(name, description, goalAmountInEth, durationInSecon
             BigInt(durationInSeconds)
         );
         await tx.wait(); // Počkat na potvrzení transakce
-        console.log('Project created:', tx);
+        console.log('SUCCESS: projekt vytvořen:', tx);
         return tx;
     } catch (error) {
-        console.error('Error creating project:', error);
+        console.error('chyba při vytváření projektu:', error);
         throw error;
     }
 }
@@ -89,10 +95,10 @@ async function contributeToProject(projectId, amountInEth) {
     try {
         const tx = await crowdFundContractWithSigner.contribute(projectId, {value: amountWei});
         await tx.wait();
-        console.log('Contribution successful:', tx);
+        console.log('SUCCESS: přispění k projektu:', tx);
         return tx;
     } catch (error) {
-        console.error('Error contributing to project:', error);
+        console.error('chyba při přispění k projektu:', error);
         throw error;
     }
 }
@@ -103,10 +109,10 @@ async function claimProjectFunds(projectId) {
     try {
         const tx = await crowdFundContractWithSigner.claimFunds(projectId);
         await tx.wait();
-        console.log('Funds claimed:', tx);
+        console.log('SUCCESS: převzetí prostředků projektu:', tx);
         return tx;
     } catch (error) {
-        console.error('Error claiming funds:', error);
+        console.error('chyba při převzetí prostředků projektu:', error);
         throw error;
     }
 }
@@ -117,10 +123,10 @@ async function triggerFailProject(projectId) {
     try {
         const tx = await crowdFundContractWithSigner.failProjectAfterDeadline(projectId);
         await tx.wait();
-        console.log('Project failed and refunds enabled:', tx);
+        console.log('Selhání projektu vytriggerováno:', tx);
         return tx;
     } catch (error) {
-        console.error('Error failing project:', error);
+        console.error('chyba při triggerování selhání projektu:', error);
         throw error;
     }
 }
@@ -149,7 +155,7 @@ async function getProjectDetails(projectId) {
         const details = await crowdFundContract.getProjectDetails(projectId);
 
         // ethers.js v6 vrací výsledky jako pole/objekt s pojmenovanými i indexovanými klíči
-        // Můžeme to zkonvertovat na čistý objekt pro snazší použití
+        // vrátíme to jako objekt s pojmenovanými klíči
         return {
             creator: details[0],
             name: details[1],
@@ -161,7 +167,7 @@ async function getProjectDetails(projectId) {
             closed: details[7]
         };
     } catch (error) {
-        console.error(`Error fetching details for project ${projectId}:`, error);
+        console.error(`chyba při získávání údajů pro projekt ${projectId}:`, error);
         throw error;
     }
 }
@@ -172,7 +178,7 @@ async function getAllProjectIds() {
         const ids = await crowdFundContract.getAllProjectIds();
         return ids.map(id => Number(id)); // konverze BigInt na Number
     } catch (error) {
-        console.error("Error fetching all project IDs:", error);
+        console.error("chyba při získávání všech ID projektů:", error);
         throw error;
     }
 }
@@ -186,7 +192,7 @@ async function getMyContribution(projectId, userAddress) {
     try {
         return await crowdFundContract.getContribution(projectId, userAddress); // BigInt
     } catch (error) {
-        console.error(`Error fetching contribution for project ${projectId}, user ${userAddress}:`, error);
+        console.error(`chyba při získávání příspěvku pro projekt ${projectId} od uživatele ${userAddress}:`, error);
         throw error;
     }
 }
@@ -199,7 +205,13 @@ async function getCurrentWalletAddress() {
             return await currentSigner.getAddress();
         }
     }
+
+    console.error("MetaMask nebo jiný Ethereum provider není dostupný.");
     return null; // pokud MetaMask není dostupný nebo není připojen účet
+}
+
+function hasReadOnlyProvider() {
+    return provider !== null && signer === null;
 }
 
 
@@ -218,6 +230,7 @@ export default {
     getAllProjectIds,
     getMyContribution,
     getCurrentWalletAddress,
+    hasReadOnlyProvider,
 
     // helper functions
     formatEther: ethers.formatEther,
