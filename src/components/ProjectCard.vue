@@ -1,31 +1,40 @@
 <template>
   <div class="project-card">
     <h4>{{ projectData.name }} (ID: {{ projectData.id }})</h4>
-    <p><strong>Tvůrce projektu:</strong> {{ projectData.creator }}</p>
-    <p><strong>Popis:</strong> {{ projectData.description }}</p>
+    <p style="word-break: break-all;">
+      <strong>Tvůrce projektu:</strong> {{ projectData.creator }}
+    </p>
+    <p>
+      <strong>Popis:</strong> {{ projectData.description }}
+    </p>
     <p>
       <strong>Cíl:</strong> {{ formatEth(projectData.goalAmount) }} ETH
     </p>
     <p>
-      <strong>Dosud vybráno:</strong> {{ formatEth(projectData.currentAmount) }} ETH
+      <strong>Dosud vybráno:</strong>
+      {{ formatEth(projectData.currentAmount) }} ETH
       ({{ fundingPercentage.toFixed(2) }}%)
     </p>
-    <p><strong>Deadline:</strong> {{ new Date(projectData.deadline * 1000).toLocaleString() }}</p>
+    <p>
+      <strong>Deadline:</strong>
+      {{ new Date(projectData.deadline * 1000).toLocaleString() }}
+    </p>
     <p v-if="projectData.myContribution && formatEth(projectData.myContribution) > 0">
       <strong>Můj příspěvek:</strong> {{ formatEth(projectData.myContribution) }} ETH
     </p>
     <p><strong>Status:</strong> {{ projectStatus }}</p>
 
     <div v-if="!projectData.closed && projectData.deadline * 1000 > Date.now()">
-      <input type="number" v-model.number="investAmount" placeholder="ETH to invest" step="0.01" min="0.001"/>
-      <button @click="invest" :disabled="isProcessing">Investovat</button>
+      <input type="number" v-model.number="investAmount" placeholder="ETH investice" step="0.01" min="0.001"/>
+      <button @click="invest" :disabled="isProcessing || ethService.hasReadOnlyProvider()">Investovat</button>
     </div>
 
     <!-- * 1000 -->
     <!-- převod sekund na milisekundy pro porovnání s Date.now() -->
     <div
         v-if="isCreator && !projectData.closed && projectData.deadline * 1000 < Date.now() && projectData.fundingGoalReached">
-      <button @click="claim" :disabled="isProcessing">Vybrat zůstatek z kontraktu</button>
+      <button @click="claim" :disabled="isProcessing || ethService.hasReadOnlyProvider()">Sklidit ovoce svého projektu
+      </button>
     </div>
 
     <div v-if="!projectData.closed && projectData.deadline * 1000 < Date.now() && !projectData.fundingGoalReached">
@@ -34,7 +43,7 @@
 
     <div
         v-if="(projectData.closed && !projectData.fundingGoalReached) || (!projectData.closed && projectData.deadline * 1000 < Date.now() && !projectData.fundingGoalReached)">
-      <button v-if="canClaimRefund" @click="claimRefund" :disabled="isProcessing">Vybrat refund</button>
+      <button v-if="canClaimRefund" @click="claimRefund" :disabled="isProcessing">Refundovat svou investici</button>
     </div>
 
     <p v-if="isProcessing" class="processing-message">zpracovávání transakcí...</p>
@@ -45,6 +54,7 @@
 <script setup>
 import {ref, computed, defineProps, defineEmits, onMounted} from 'vue';
 import ethService from '../services/ethereumService.js';
+import ethereumService from "../services/ethereumService.js";
 
 const props = defineProps({
   projectData: {
@@ -90,10 +100,10 @@ const fundingPercentage = computed(() => {
 const projectStatus = computed(() => {
   const now = Date.now() / 1000; // aktuální čas v sekundách
   if (props.projectData.closed) {
-    return props.projectData.fundingGoalReached ? 'Successfully Funded & Closed' : 'Failed & Closed';
+    return props.projectData.fundingGoalReached ? 'Úspěšně financován a dokončen' : 'Projekt selhal';
   }
   if (props.projectData.deadline < now) {
-    return props.projectData.fundingGoalReached ? 'Funding Goal Met (Awaiting Claim)' : 'Deadline Passed (Not Funded)';
+    return props.projectData.fundingGoalReached ? 'Projekt splněn (čeká se na převzení)' : 'Deadline dosažena (nefinancován)';
   }
   return 'Ongoing';
 });

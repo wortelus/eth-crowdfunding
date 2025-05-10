@@ -58,7 +58,7 @@ contract CrowdFund {
 
     //
     // modifiery pro caste require
-    //
+    // '_;' je místo, kde se vykoná kód originalní funkce
     modifier onlyProjectCreator(uint256 _projectId) {
         require(msg.sender == projects[_projectId].creator, "Pouze tvurce toto muze volat.");
         _;

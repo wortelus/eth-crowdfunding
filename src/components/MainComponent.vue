@@ -1,53 +1,79 @@
 <template>
   <div>
     <div v-if="!walletAddress">
-      <button @click="connectWallet">Připojit peněženku</button>
+      <button class="btn btn-success" @click="connectWallet">Připojit peněženku</button>
     </div>
     <div v-else>
-      <p>Connected: {{ walletAddress }}</p>
+      <EthAvatar :address="walletAddress" :diameter="40"></EthAvatar>
+      <span class="mx-2">Aktuálně připojená peněženka: {{ walletAddress }}</span>
+      <button class="btn btn-success" @click="connectWallet">Znovu připojit peněženku</button>
+    </div>
+    <div>
       <hr/>
       <CreateProjectForm @projectCreated="fetchProjects"/>
       <hr/>
-      <h2>All Projects</h2>
-      <button @click="sortProjectsByAge">{{ sortAscending ? 'Od nejnovějšího' : 'Od nejstaršího' }}</button>
-      <div v-if="loadingProjects">načítání projektů...</div>
-      <div v-else>
-        <ProjectCard
-            v-for="project in sortedProjects"
-            :key="project.id"
-            :project-data="project"
-            @invest="handleInvest"
-            @claim="handleClaim"
-            @trigger-fail="handleTriggerFail"
-            @claim-refund="handleClaimRefund"
-        />
-      </div>
-      <hr/>
-      <h2>Moje investice do projektů</h2>
-      <div v-if="loadingMyInvestments">načítání investic...</div>
-      <div v-else-if="myInvestedProjects.length === 0 && walletAddress">No investments found.</div>
-      <div v-else>
-        <ProjectCard
-            v-for="project in myInvestedProjects"
-            :key="project.id + '-invested'"
-            :project-data="project"
-            @invest="handleInvest"
-            @claim="handleClaim"
-            @trigger-fail="handleTriggerFail"
-            @claim-refund="handleClaimRefund"
-        />
-      </div>
-      <hr/>
-      <h2>Neúspěšné dokončené projekty</h2>
-      <div v-if="loadingUnsuccessful">načítání neuspěšných projektů...</div>
-      <div v-else-if="unsuccessfulProjects.length === 0">Nic neuspěšného nebylo zatím nalezeno :)</div>
-      <div v-else>
-        <ProjectCard
-            v-for="project in unsuccessfulProjects"
-            :key="project.id + '-unsuccessful'"
-            :project-data="project"
-            @claim-refund="handleClaimRefund"
-        />
+      <div class="row mt-4">
+        <div class="col-3">
+          <h2>Ongoing projekty</h2>
+          <button @click="sortProjectsByAge">{{ sortAscending ? 'Od nejnovějšího' : 'Od nejstaršího' }}</button>
+          <div v-if="loadingProjects">načítání projektů...</div>
+          <div v-else>
+            <ProjectCard
+                v-for="project in ongoingProjects"
+                :key="project.id"
+                :project-data="project"
+                @invest="handleInvest"
+                @claim="handleClaim"
+                @trigger-fail="handleTriggerFail"
+                @claim-refund="handleClaimRefund"
+            />
+          </div>
+        </div>
+        <div class="col-3">
+          <h2>Mé investice</h2>
+          <div v-if="loadingMyInvestments">načítání investic...</div>
+          <div v-else-if="ownProjects.length === 0 && walletAddress">Žádné investice.</div>
+          <div v-else>
+            <ProjectCard
+                v-for="project in ownProjects"
+                :key="project.id + '-own'"
+                :project-data="project"
+                @invest="handleInvest"
+                @claim="handleClaim"
+                @trigger-fail="handleTriggerFail"
+                @claim-refund="handleClaimRefund"
+            />
+          </div>
+        </div>
+        <div class="col-3">
+          <h2>Aktivní investice</h2>
+          <div v-if="loadingMyInvestments">načítání investic...</div>
+          <div v-else-if="myInvestedProjects.length === 0 && walletAddress">Žádné aktivní investice.</div>
+          <div v-else>
+            <ProjectCard
+                v-for="project in myInvestedProjects"
+                :key="project.id + '-invested'"
+                :project-data="project"
+                @invest="handleInvest"
+                @claim="handleClaim"
+                @trigger-fail="handleTriggerFail"
+                @claim-refund="handleClaimRefund"
+            />
+          </div>
+        </div>
+        <div class="col-3">
+          <h2>Neúspěšné projekty</h2>
+          <div v-if="loadingUnsuccessful">načítání neuspěšných projektů...</div>
+          <div v-else-if="unsuccessfulProjects.length === 0">Nic neuspěšného nebylo zatím nalezeno :)</div>
+          <div v-else>
+            <ProjectCard
+                v-for="project in unsuccessfulProjects"
+                :key="project.id + '-unsuccessful'"
+                :project-data="project"
+                @claim-refund="handleClaimRefund"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -58,6 +84,7 @@ import {ref, onMounted, computed} from 'vue';
 import ethService from '../services/ethereumService.js'
 import CreateProjectForm from '../components/CreateProjectForm.vue'
 import ProjectCard from '../components/ProjectCard.vue'
+import EthAvatar from "@/components/EthAvatar.vue";
 
 const walletAddress = ref(null);
 const allProjects = ref([]);
@@ -119,27 +146,28 @@ const fetchProjects = async () => {
 };
 
 const fetchMyInvestments = async () => {
-  if (!walletAddress.value) return;
-  loadingMyInvestments.value = true;
-  // Pro 'My Investments' projdeme všechny projekty a zkontrolujeme naši investici
-  // Efektivnější by bylo mít v kontraktu funkci, která vrátí projekty, do kterých uživatel investoval,
-  // nebo poslouchat eventy a ukládat si je lokálně.
-  // Pro jednoduchost teď znovu projdeme allProjects nebo je znovu načteme, pokud je to potřeba.
-  if (allProjects.value.length === 0) {
-    await fetchProjects(); // Ujistíme se, že máme data
-  }
-  // Filtrování se provede v computed property `myInvestedProjects`
-  loadingMyInvestments.value = false;
+  // tohle asi není třeba
+  // if (!walletAddress.value) return;
+  // loadingMyInvestments.value = true;
+  // if (allProjects.value.length === 0) {
+  //   await fetchProjects();
+  // }
+  // loadingMyInvestments.value = false;
 };
 
 
-const sortedProjects = computed(() => {
+const ongoingProjects = computed(() => {
   // pouze nedokončené projekty
   const unfinished = allProjects.value.filter(p => !p.closed && p.deadline * 1000 > Date.now());
   return [...unfinished].sort((a, b) => {
     // předpokládáme, že id reprezentuje posloupnost vytvoření projektů
     return sortAscending.value ? a.id - b.id : b.id - a.id;
   });
+});
+
+const ownProjects = computed(() => {
+  if (!walletAddress.value) return [];
+  return allProjects.value.filter(p => p.creator && p.creator.toLowerCase() === walletAddress.value.toLowerCase());
 });
 
 const myInvestedProjects = computed(() => {

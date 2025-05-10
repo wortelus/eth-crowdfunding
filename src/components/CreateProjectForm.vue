@@ -1,28 +1,29 @@
 <template>
-  <div>
-    <h3>Vytvořit nový projekt</h3>
-    <form @submit.prevent="submitProject">
-      <div>
-        <label for="name">Název projektu:</label>
-        <input type="text" id="name" v-model="name" required/>
+  <div class="container mt-4">
+    <h3 class="mb-4">Vytvořit nový projekt</h3>
+    <form @submit.prevent="submitProject" class="row align-items-center">
+      <div class="col-auto mx-2">
+        <label for="name" class="form-label mb-0">Název projektu:</label>
+        <input type="text" id="name" v-model="name" class="form-control" required/>
       </div>
-      <div>
-        <label for="description">Popis:</label>
-        <textarea id="description" v-model="description" required></textarea>
+      <div class="col-auto mx-2">
+        <label for="description" class="form-label mb-0">Popis:</label>
+        <input type="text" id="description" v-model="description" class="form-control" required/>
       </div>
-      <div>
-        <label for="goal">Cíl (ETH):</label>
-        <input type="number" id="goal" v-model.number="goalAmount" step="0.01" required min="0.01"/>
+      <div class="col-auto mx-2">
+        <label for="goal" class="form-label mb-0">Cíl (ETH):</label>
+        <input type="number" id="goal" v-model.number="goalAmount" step="0.01" min="0.01" class="form-control"
+               required/>
       </div>
-      <div>
-        <label for="duration">Délka v minutách:</label>
-        <input type="number" id="duration" v-model.number="durationMinutes" required min="1"/>
+      <div class="col-auto mx-2">
+        <label for="duration" class="form-label mb-0">Délka (min):</label>
+        <input type="number" id="duration" v-model.number="durationMinutes" min="1" class="form-control" required/>
       </div>
-      <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'vytváření...' : 'Vytvořit projekt' }}
-      </button>
-      <p v-if="error" style="color: red;">{{ error }}</p>
     </form>
+    <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+      {{ isSubmitting ? 'Vytváření...' : 'Vytvořit projekt' }}
+    </button>
+    <div v-if="error" class="mt-2 text-danger">{{ error }}</div>
   </div>
 </template>
 

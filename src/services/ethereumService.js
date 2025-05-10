@@ -1,4 +1,7 @@
+// pro Alchemy API
 import {ethers} from 'ethers';
+// SDK přímo pro Alchemy
+// import { Network, Alchemy } from "alchemy-sdk";
 import {contractABI, contractAddress, alchemyApiKey} from './const';
 
 let provider;
@@ -26,6 +29,11 @@ const initProvider = async () => {
 
             // fallback na Alchemy providera (read-only, pokud uživatel nepovolí MetaMask)
             provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/${alchemyApiKey}`);
+            // const settings = {
+            //     apiKey: alchemyApiKey,
+            //     network: Network.ETH_SEPOLIA,
+            // };
+            // const alchemy = new Alchemy(settings);
             crowdFundContract = new ethers.Contract(contractAddress, contractABI, provider);
 
             console.log("Alchemy provider nastaven úspěšně (read-only).");
@@ -199,7 +207,9 @@ async function getMyContribution(projectId, userAddress) {
 
 async function getCurrentWalletAddress() {
     if (window.ethereum) {
-        if (!provider) await initProvider(); // zajistí, že provider je inicializován
+        // zajistí, že provider je inicializován
+        if (!provider) await initProvider();
+        if (!signer) return null;
         const currentSigner = await provider.getSigner(); // get current signer
         if (currentSigner) {
             return await currentSigner.getAddress();
@@ -211,7 +221,7 @@ async function getCurrentWalletAddress() {
 }
 
 function hasReadOnlyProvider() {
-    return provider !== null && signer === null;
+    return provider !== null && signer === undefined;
 }
 
 
