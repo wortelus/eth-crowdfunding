@@ -80,11 +80,12 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed} from 'vue';
+import {ref, onMounted, onUnmounted, computed} from 'vue';
 import ethService from '../services/ethereumService.js'
 import CreateProjectForm from '../components/CreateProjectForm.vue'
 import ProjectCard from '../components/ProjectCard.vue'
 import EthAvatar from "@/components/EthAvatar.vue";
+import {cleanupEventListeners, initializeEventListeners} from "@/assets/listeners.js";
 
 const walletAddress = ref(null);
 const allProjects = ref([]);
@@ -235,14 +236,34 @@ const handleClaimRefund = async (projectId) => {
   }
 };
 
+const handleAccountChanged = async (accounts) => {
+  if (accounts.length > 0) {
+    console.log("Nový účet připojen:", accounts[0]);
+    walletAddress.value = accounts[0];
+    await ethService.initProvider(); // Re-inicializuj providera s novým účtem
+    fetchProjects();
+    fetchMyInvestments();
+  } else {
+    walletAddress.value = null;
+    allProjects.value = [];
+    // načíst znovu přes Alchemy
+    await ethService.initProvider();
+    fetchProjects();
+    fetchMyInvestments();
+    console.log("Peněženka odpojena.");
+  }
+};
+
+const handleChainChanged = () => {
+  console.log("chainChanged - sit zmenena, obnovuji stránku.");
+  window.location.reload();
+};
+
 onMounted(async () => {
   // nejdříve se pokusíme připojit k peněžence, pokud je dostupná
   if (window.ethereum && window.ethereum.selectedAddress) {
     await connectWallet();
   } else {
-    // Pokud není peněženka připojena, můžeme stále načíst projekty přes Alchemy (read-only)
-    // To vyžaduje, aby initProvider() v ethService.js uměl nastavit read-only providera,
-    // pokud MetaMask není dostupný nebo povolen.
     console.log('MetaMask není připojen, pokusím se inicializovat read-only provider.');
     try {
       await ethService.initProvider(); // Inicializuje Alchemy providera, pokud není MetaMask
@@ -254,22 +275,19 @@ onMounted(async () => {
 
   // Poslouchání změn účtu v MetaMask
   if (window.ethereum) {
-    window.ethereum.on('accountsChanged', async (accounts) => {
-      if (accounts.length > 0) {
-        walletAddress.value = accounts[0];
-        await ethService.initProvider(); // Re-inicializuj providera s novým účtem
-        fetchProjects();
-        fetchMyInvestments();
-      } else {
-        walletAddress.value = null;
-        allProjects.value = []; // Vyčistit projekty, pokud se uživatel odpojí
-        // Můžete se pokusit znovu načíst přes Alchemy, pokud chcete
-      }
-    });
-    window.ethereum.on('chainChanged', () => {
-      window.location.reload(); // Jednoduchý způsob, jak se vypořádat se změnou sítě
-    });
+    window.ethereum.on('accountsChanged', handleAccountChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
   }
+
+  await initializeEventListeners(ethService, fetchProjects);
+});
+
+onUnmounted(() => {
+  if (window.ethereum) {
+    window.ethereum.removeListener('accountsChanged', handleAccountChanged);
+    window.ethereum.removeListener('chainChanged', handleChainChanged);
+  }
+  cleanupEventListeners();
 });
 
 // Pomocné funkce pro konverzi BigInt na ETH string pro zobrazení

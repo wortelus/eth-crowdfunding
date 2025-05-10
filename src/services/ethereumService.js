@@ -220,6 +220,14 @@ async function getCurrentWalletAddress() {
     return null; // pokud MetaMask není dostupný nebo není připojen účet
 }
 
+function getContractInstance() {
+    if (!crowdFundContract) {
+        console.error("Kontrakt není inicializován.");
+        return null;
+    }
+    return crowdFundContract;
+}
+
 function hasReadOnlyProvider() {
     return provider !== null && signer === undefined;
 }
@@ -241,6 +249,7 @@ export default {
     getMyContribution,
     getCurrentWalletAddress,
     hasReadOnlyProvider,
+    getContractInstance,
 
     // helper functions
     formatEther: ethers.formatEther,

@@ -165,7 +165,7 @@ contract CrowdFund {
     }
 
     // funkce pro investory, co chcou sve penize zpet
-    function claimRefund(uint256 _projectId) public projectOpen(_projectId) {
+    function claimRefund(uint256 _projectId) public {
         Project storage project = projects[_projectId];
         // refund je možný:
         // 1. projekt je uzavřen (failProjectAfterDeadline) a cíl nebyl dosažen.

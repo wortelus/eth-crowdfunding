@@ -19,10 +19,10 @@
         <label for="duration" class="form-label mb-0">Délka (min):</label>
         <input type="number" id="duration" v-model.number="durationMinutes" min="1" class="form-control" required/>
       </div>
+      <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+        {{ isSubmitting ? 'Vytváření...' : 'Vytvořit projekt' }}
+      </button>
     </form>
-    <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-      {{ isSubmitting ? 'Vytváření...' : 'Vytvořit projekt' }}
-    </button>
     <div v-if="error" class="mt-2 text-danger">{{ error }}</div>
   </div>
 </template>
