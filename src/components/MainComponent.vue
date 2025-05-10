@@ -15,7 +15,6 @@
       <div class="row mt-4">
         <div class="col-3">
           <h2>Ongoing projekty</h2>
-          <button @click="sortProjectsByAge">{{ sortAscending ? 'Od nejnovějšího' : 'Od nejstaršího' }}</button>
           <div v-if="loadingProjects">načítání projektů...</div>
           <div v-else>
             <ProjectCard
@@ -75,6 +74,27 @@
           </div>
         </div>
       </div>
+      <hr/>
+      <div class="row mt-2">
+        <div class="col-12">
+          <h2>Všechny projekty</h2>
+          <button :class="['btn', sortAscending ? 'btn-primary' : 'btn-secondary']"
+              @click="sortProjectsByAge">{{ sortAscending ? 'Od nejnovějšího' : 'Od nejstaršího' }}</button>
+          <div v-if="loadingProjects">načítání projektů...</div>
+          <div v-else-if="allProjectsSorted.length === 0">Žádné projekty.</div>
+          <div v-else>
+            <ProjectCard
+                v-for="project in allProjectsSorted"
+                :key="project.id + '-all'"
+                :project-data="project"
+                @invest="handleInvest"
+                @claim="handleClaim"
+                @trigger-fail="handleTriggerFail"
+                @claim-refund="handleClaimRefund"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -116,7 +136,7 @@ const connectWallet = async () => {
 const fetchProjects = async () => {
   if (!walletAddress.value && !ethService.hasReadOnlyProvider()) {
     console.log("Nemohu fetchnout projekty, protože nemám peněženku a ani read-only providera.");
-    // await ethService.initProvider();
+    return;
   }
   loadingProjects.value = true;
   try {
@@ -156,14 +176,19 @@ const fetchMyInvestments = async () => {
   // loadingMyInvestments.value = false;
 };
 
+const allProjectsSorted = computed(() => {
+  const projectsCopy = [...allProjects.value];
+
+  if (sortAscending.value) {
+    return projectsCopy.sort((a, b) => a.deadline - b.deadline); // Řadíme podle deadlinu, od nejstaršího
+  } else {
+    return projectsCopy.sort((a, b) => b.deadline - a.deadline); // Řadíme podle deadlinu, od nejnovějšího
+  }
+});
 
 const ongoingProjects = computed(() => {
   // pouze nedokončené projekty
-  const unfinished = allProjects.value.filter(p => !p.closed && p.deadline * 1000 > Date.now());
-  return [...unfinished].sort((a, b) => {
-    // předpokládáme, že id reprezentuje posloupnost vytvoření projektů
-    return sortAscending.value ? a.id - b.id : b.id - a.id;
-  });
+  return allProjects.value.filter(p => !p.closed && p.deadline * 1000 > Date.now());
 });
 
 const ownProjects = computed(() => {

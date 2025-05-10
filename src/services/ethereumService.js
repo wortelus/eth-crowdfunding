@@ -40,7 +40,8 @@ const initProvider = async () => {
         }
     } else {
         // Pokud MetaMask není k dispozici, použijeme Alchemy jako výchozí (read-only)
-        console.log('MetaMask not detected. Using Alchemy provider (read-only).');
+        console.log('MetaMask nebyl nalezen. Nainstalujte MetaMask (nyní používáme Alchemy jako fallback).');
+        alert("MetaMask není dostupný. Nainstalujte MetaMask pro plnou funkčnost.");
         provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/${alchemyApiKey}`);
         crowdFundContract = new ethers.Contract(contractAddress, contractABI, provider);
     }

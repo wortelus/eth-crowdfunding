@@ -21,11 +21,11 @@ const avatarContainer = ref(null);
 
 const generateAvatar = () => {
   if (props.address && avatarContainer.value) {
-    // Vyčistit předchozí avatar, pokud existuje
     avatarContainer.value.innerHTML = '';
-    const numericSeed = parseInt(props.address.slice(2, 10), 16); // Příklad seedu z části adresy
 
+    const numericSeed = parseInt(props.address.slice(2, 10), 16);
     const icon = jazzicon(props.diameter, numericSeed);
+
     avatarContainer.value.appendChild(icon);
   }
 };

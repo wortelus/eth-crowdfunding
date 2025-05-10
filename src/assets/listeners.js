@@ -28,41 +28,26 @@ export const initializeEventListeners = async (ethServiceInstance, handleAllFetc
 
         crowdFundContractInstance.on("ProjectCreated", (projectId, creator, name, goalAmount, deadline, eventDetails) => {
             console.log("LISTENERS.JS - EVENT: ProjectCreated zachycen!");
-            // alert(`Nový projekt "${name}" byl vytvořen! Seznam bude aktualizován.`);
             localHandleAllFetches();
         });
 
         crowdFundContractInstance.on("ContributionMade", (projectId, contributor, amount, eventDetails) => {
             console.log("LISTENERS.JS - EVENT: ContributionMade zachycen!");
-            // alert(`Nová investice ${localEthService.formatEther(amount)} ETH do projektu ID: ${projectId.toString()}! Seznam bude aktualizován.`);
             localHandleAllFetches();
         });
 
         crowdFundContractInstance.on("FundsClaimed", (projectId, creator, amount, eventDetails) => {
             console.log("LISTENERS.JS - EVENT: FundsClaimed zachycen!");
-            // alert(`Prostředky pro projekt ID: ${projectId.toString()} byly úspěšně vybrány!`);
             localHandleAllFetches();
         });
 
         crowdFundContractInstance.on("FundsRefunded", (projectId, contributor, amount, eventDetails) => {
             console.log("LISTENERS.JS - EVENT: FundsRefunded zachycen!");
-            console.log({
-                projectId: projectId.toString(),
-                contributor,
-                amount: localEthService.formatEther(amount) + " ETH",
-                transactionHash: eventDetails.log.transactionHash
-            });
-            // alert(`Refundace pro projekt ID: ${projectId.toString()} byla úspěšně zpracována pro investora ${contributor}.`);
             localHandleAllFetches();
         });
 
         crowdFundContractInstance.on("ProjectFailed", (projectId, eventDetails) => {
             console.log("LISTENERS.JS - EVENT: ProjectFailed zachycen!");
-            console.log({
-                projectId: projectId.toString(),
-                transactionHash: eventDetails.log.transactionHash
-            });
-            // alert(`Projekt ID: ${projectId.toString()} byl označen jako neúspěšný.`);
             localHandleAllFetches();
         });
 
